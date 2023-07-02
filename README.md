@@ -20,10 +20,10 @@ Therefore, this research proposes methods to answer the following 3 research que
 
 - **RQ3**. Analysis of the likelihood that different text prompts have to generate authentic images
 
+<br>
+Examples for my implementation of the described methods are provided in the __[Notebook](Notebook.ipynb)__
 <br><br>
-Examples for my implementation of the described methods are provided in the __[Notebook](http://)__
-<br><br>
-The complete implementation of the models can be found in the source directory of this GitHub repository __[Source Code](http://url)__
+The complete implementation of the models can be found in the source directory of this GitHub repository __[Source Code](src)__
 
 # Installation Instructions
 
