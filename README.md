@@ -19,11 +19,11 @@ Therefore, this research proposes methods to answer the following 3 research que
 - **RQ2**. Attribution of the fake images to their source model
 
 - **RQ3**. Analysis of the likelihood that different text prompts have to generate authentic images
-
 <br>
-Examples for my implementation of the described methods are provided in the __[Notebook](Notebook.ipynb)__
-<br><br>
-The complete implementation of the models can be found in the source directory of this GitHub repository __[Source Code](src)__
+
+Examples for my implementation of the described methods are provided in the [Notebook](Notebook.ipynb)
+<br>
+The complete implementation of the models can be found in the source directory of this GitHub repository [Source Code](/src)
 
 # Installation Instructions
 
