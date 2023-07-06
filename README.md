@@ -29,3 +29,14 @@ The complete implementation of the models can be found in the source directory o
 
 To install and run all the implemented models, execute the following
 [...]
+
+## Prerequisites
+- install pandas
+    pip install pandas
+- install Stable Diffusion sdk
+    pip install stability-sdk
+
+
+## Project execution instructions
+### In order to fetch 100 random images from MSCOCO dataset
+    run data_collection.py
