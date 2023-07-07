@@ -28,7 +28,7 @@ for file_name in os.listdir(path_fake_images):
         if "invalid_prompt" in file_name:
             invalid_images.append(file_name[5:-19]+".jpg")
         else:
-            dest_path = os.path.join("data/train_dataset_image-only_detector/class_0", file_name)
+            dest_path = os.path.join("data/image-only_detector_data/train/class_0", file_name)
             shutil.copy2(img_path, dest_path)
 print(invalid_images)
 
@@ -39,5 +39,5 @@ for file_name in os.listdir(path_real_images):
     if os.path.isfile(img_path):
         # Check if the excluded string is not present in the file name
         if file_name not in invalid_images:
-            dest_path = os.path.join("data/train_dataset_image-only_detector/class_1", file_name)
+            dest_path = os.path.join("data/image-only_detector_data/train/class_1", file_name)
             shutil.copy2(img_path, dest_path)

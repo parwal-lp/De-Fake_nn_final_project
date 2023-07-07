@@ -32,9 +32,24 @@ To install and run all the implemented models, execute the following
 
 ## Prerequisites
 - install pandas
+    ```
     pip install pandas
+    ```
 - install Stable Diffusion sdk
+    ```
     pip install stability-sdk
+    ```
+- install Torchvision library
+    ```
+    pip install torchvision
+    ```
+- install Latent Diffusion model from GitHub
+    ```
+    git clone https://github.com/CompVis/latent-diffusion.git
+    pip install transformers==4.19.2 scann kornia==0.6.4 torchmetrics==0.6.0
+    pip install omegaconf
+    pip install einops
+    ```
 
 
 ## Project execution instructions
