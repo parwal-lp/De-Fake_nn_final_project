@@ -2,7 +2,6 @@ import subprocess
 import pandas as pd
 import os
 
-output_dir = "../../De-Fake_nn_final_project/data/imageonly_detector_data/val_LD/class_0"
 captions_file = 'data/MSCOCO_for_LD/mscoco_captions.csv'
 
 ld_dir = "/home/parwal/Documents/GitHub/latent-diffusion"
@@ -37,4 +36,4 @@ for index, row in df.iterrows():
     subprocess.run(command)
     print("-----------------------")
 
-print(f"All images generated successfully. You can find them at {output_dir}")
+print(f"All images generated successfully. You can find them at latent-diffusion/outputs/txt2img-samples")
