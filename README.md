@@ -49,9 +49,17 @@ To install and run all the implemented models, execute the following
     pip install transformers==4.19.2 scann kornia==0.6.4 torchmetrics==0.6.0
     pip install omegaconf
     pip install einops
+    pip install pytorch_lightning
+    pip install taming-transformers-rom1504
     ```
-
-
+- install CLIP (from OpenAI, required for Latend Diffusion)
+    ```
+    pip install ftfy regex tqdm
+    ```
+- modify the latent-diffusion files according to the commit<br>
+    https://github.com/CompVis/latent-diffusion/pull/123/files<br>
+    in order to be able to run the model on cpu only
+    
 ## Project execution instructions
 ### In order to fetch 100 random images from MSCOCO dataset
     run data_collection.py

@@ -25,7 +25,7 @@ data_transforms = {
     ]),
 }
 
-data_dir = 'data/image-only_detector_data'
+data_dir = 'data/imageonly_detector_data'
 image_datasets = {x: torchvision.datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train']}
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train']}
