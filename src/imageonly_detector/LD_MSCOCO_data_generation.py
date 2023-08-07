@@ -26,14 +26,14 @@ for index, row in df.iterrows():
         "--n_iter",
         "1",
         "--scale",
-        "5.0",
+        "10.0",
         "--ddim_steps",
-        "10",
+        "100",
         "--img_id",
         image_id
     ]
-    print(f"eseguo il comando {index}")
+    print(f"genero l'immagine {index}/50")
     subprocess.run(command)
-    print("-----------------------")
+    print("-----------------------------------------------------")
 
 print(f"All images generated successfully. You can find them at latent-diffusion/outputs/txt2img-samples")

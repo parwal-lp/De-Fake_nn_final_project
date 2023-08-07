@@ -52,6 +52,13 @@ To install and run all the implemented models, execute the following
     pip install pytorch_lightning
     pip install taming-transformers-rom1504
     ```
+- install GLIDE model from GitHub
+    ```
+    git clone https://github.com/openai/glide-text2im.git
+    cd glide-text2im/
+    pip install -e .
+    pip install nbformat
+    ```
 - install CLIP (from OpenAI, required for Latend Diffusion)
     ```
     pip install ftfy regex tqdm
