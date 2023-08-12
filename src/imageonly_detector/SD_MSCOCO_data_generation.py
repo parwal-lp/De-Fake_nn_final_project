@@ -10,7 +10,7 @@ import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 import pandas as pd
 
 os.environ['STABILITY_HOST'] = 'grpc.stability.ai:443'
-os.environ['STABILITY_KEY'] = 'sk-ZNLjRdeC97wjt82n9GxvlHSPylVkqU476vLyOYUJgYhuKJOM'
+os.environ['STABILITY_KEY'] = 'sk-Ibt850ZuDn9CuHQN0wx8YolFaIRlTWccR9Zs4FxFS4OHeWvL'
 
 # Set up our connection to the API.
 stability_api = client.StabilityInference(
@@ -21,7 +21,7 @@ stability_api = client.StabilityInference(
     # stable-diffusion-512-v2-1 stable-diffusion-768-v2-1 stable-diffusion-xl-beta-v2-2-2 (<- incompatible with CLIP Guidance) stable-inpainting-v1-0 stable-inpainting-512-v2-0 
 )
 
-captions_file = 'data/MSCOCO/mscoco_captions.csv'
+captions_file = 'data/MSCOCO_for_SD/mscoco_captions.csv'
 df = pd.read_csv(captions_file)
 
 for index, row in df.iterrows():

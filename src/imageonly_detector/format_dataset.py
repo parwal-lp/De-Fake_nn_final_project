@@ -40,8 +40,54 @@ def formatIntoDataset(real_imgs_path, fake_imgs_path, dest_dataset_dir):
                 dest_path = os.path.join(f"{dest_dataset_dir}/class_1", file_name)
                 shutil.copy2(img_path, dest_path)
 
-path_real_images = "data/MSCOCO/images"
-path_fake_images = "data/SD+MSCOCO/images"
-dest_dataset_dir = "data/imageonly_detector_data/train"
 
-formatIntoDataset(path_real_images, path_fake_images, dest_dataset_dir)
+def formatIntoTrainTest(real_imgs_path, fake_imgs_path, dest_dataset_dir):
+    invalid_images = []
+    #itera tutte le real images
+    print("itero le fake")
+    index = 1
+    for file_name in os.listdir(fake_imgs_path):
+        if index==50:
+            print("passo a val")
+        img_path = os.path.join(fake_imgs_path, file_name)
+        
+        # Check if the file is an image (you can modify this condition based on your image file extensions)
+        if os.path.isfile(img_path):
+            # Check if the excluded string is not present in the file name
+            if "invalid_prompt" in file_name:
+                invalid_images.append(file_name[5:-19]+".jpg")
+            else:
+                if index <= 50:
+                    dest_path = os.path.join(f"{dest_dataset_dir}/train/class_0", file_name)
+                else:
+                    dest_path = os.path.join(f"{dest_dataset_dir}/val/class_0", file_name)
+                shutil.copy2(img_path, dest_path)
+                index += 1
+    print(invalid_images)
+
+    print("itero le real")
+    index = 1
+    for file_name in os.listdir(real_imgs_path):
+        if index==50:
+            print("passo a val")
+        img_path = os.path.join(real_imgs_path, file_name)
+        
+        # Check if the file is an image (you can modify this condition based on your image file extensions)
+        if os.path.isfile(img_path):
+            # Check if the excluded string is not present in the file name
+            if file_name not in invalid_images:
+                if index <= 50:
+                    dest_path = os.path.join(f"{dest_dataset_dir}/train/class_1", file_name)
+                else:
+                    dest_path = os.path.join(f"{dest_dataset_dir}/val/class_1", file_name)
+                shutil.copy2(img_path, dest_path)
+                index += 1
+
+
+#path_real_images = "data/MSCOCO/images"
+#path_fake_images = "data/SD+MSCOCO/images"
+#dest_dataset_dir = "data/imageonly_detector_data/train"
+
+#formatIntoDataset(path_real_images, path_fake_images, dest_dataset_dir)
+
+#formatIntoTrainTest("data/MSCOCO_for_SD/images", "data/SD+MSCOCO/images", "data/imageonly_detector_data")
