@@ -1,24 +1,20 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+
+from encoder import encode_images_and_captions, fuse_embeddings
 
 class HybridDataset(Dataset):
-  def __init__(self, dataset, transform_list=None):
-    [data_X, data_y] = dataset
-    X_tensor, y_tensor = torch.tensor(data_X), torch.tensor(data_y)
-    tensors = (X_tensor, y_tensor)
-    assert all(tensors[0].size(0) == tensor.size(0) for tensor in tensors)
-    self.tensors = tensors
-    self.transforms = transform_list
+    def __init__(self, fused_img_captions, labels, transform_list=None):
+        self.data = []
+        self.transforms = transform_list
 
-  def __getitem__(self, index):
-    x = self.tensors[0][index]
+        for sample, label in zip(fused_img_captions, labels):
+            self.data.append([sample, label])
 
-    if self.transforms:
-      x = self.transforms(x)
+    def __len__(self):
+        return len(self.data)
 
-    y = self.tensors[1][index]
 
-    return x, y
-
-  def __len__(self):
-    return self.tensors[0].size(0)
+    def __getitem__(self, index):
+        sample, class_name = self.data[index]
+        return sample, class_name

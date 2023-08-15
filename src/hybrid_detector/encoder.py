@@ -20,7 +20,7 @@ model, preprocess = clip.load("ViT-B/32", device=device)
 def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
 
     os.chdir("../De-Fake_nn_final_project")
-    print(os.getcwd())
+    #print(os.getcwd())
 
     img_dirs = [real_img_dir, fake_img_dir]
     df = pd.read_csv(captions_file)
@@ -32,7 +32,7 @@ def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
     #create encodings for images and texts
     for dir in img_dirs:
         for img_name in os.listdir(dir): #scorro prima le real e poi le fake
-            print(dir, img_name)
+            #print(dir, img_name)
             img_path = os.path.join(dir, img_name)
             img = Image.open(img_path)
 
@@ -61,7 +61,7 @@ def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
             encoded_captions.append(encoded_caption)
             labels.append(img_class)
 
-    print(labels)
+    #print(labels)
     return encoded_images, encoded_captions, labels
 
 
