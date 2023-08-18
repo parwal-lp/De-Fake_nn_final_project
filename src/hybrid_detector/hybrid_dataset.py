@@ -1,7 +1,4 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-
-from encoder import encode_images_and_captions, fuse_embeddings
+from torch.utils.data import Dataset
 
 class HybridDataset(Dataset):
     def __init__(self, fused_img_captions, labels, transform_list=None):

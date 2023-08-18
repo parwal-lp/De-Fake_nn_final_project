@@ -41,6 +41,28 @@ def fetchImagesFromMSCOCO(save_img_dir, save_caption_dir, n_instances):
         with open(f'{save_caption_dir}/mscoco_captions.csv', 'a') as f:
             print(f'{img_id},{annotations[0]["id"]},"{first_caption}"', file=f) #scrivo le caption nel file csv preparato prima
 
+def fetchCaptionsFromMSCOCO(save_caption_dir, n_instances):
+    cocoImages = COCO(instancesFile)
+    cocoCaptions = COCO(captionsFile)
+
+    # Get all image IDs
+    all_image_ids = cocoImages.getImgIds()
+
+    # Select N random image IDs
+    random_image_ids = random.sample(all_image_ids, n_instances)
+
+    with open(f'{save_caption_dir}/mscoco_captions.csv', 'a') as f:
+        intestazione_tabella = "img_id,ann_id,caption"
+        print(intestazione_tabella, file=f)
+
+    # Download and save the selected images
+    for img_id in random_image_ids:
+        #recupero le caption relative a ogni immagine
+        annotation_id = cocoCaptions.getAnnIds(imgIds=img_id)
+        annotations = cocoCaptions.loadAnns(annotation_id)
+        first_caption = annotations[0]['caption'] #salvo solo la prima caption di ogni immagine perche me ne serve solo una
+        with open(f'{save_caption_dir}/mscoco_captions.csv', 'a') as f:
+            print(f'{img_id},{annotations[0]["id"]},"{first_caption}"', file=f) #scrivo le caption nel file csv preparato prima
 
 # Set the directory to save the images and the captions
 save_img_dir = f'{dataDir}/MSCOCO/images'

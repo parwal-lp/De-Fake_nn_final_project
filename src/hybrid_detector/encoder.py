@@ -3,21 +3,22 @@ import torch
 import os
 import clip
 from PIL import Image
-from torchvision import transforms
+from torch.utils.data import DataLoader
+
+from hybrid_dataset import HybridDataset
 
 # these instructions are needed to:
 # - encode an input image using CLIP image encoder
 # - encode its label using CLIP text encoder
 # - concatenate these two embeddings into a single item (that becomes the input for the training of our classifier)
 
-clip_dir = "../CLIP/"
-os.chdir(clip_dir)
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
-
-
 def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
+
+    clip_dir = "../CLIP/"
+    os.chdir(clip_dir)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model, preprocess = clip.load("ViT-B/32", device=device)
 
     os.chdir("../De-Fake_nn_final_project")
     #print(os.getcwd())
@@ -72,13 +73,15 @@ def fuse_embeddings(encoded_images, encoded_labels):
         fused_embeddings.append(img_lab)
     return fused_embeddings
 
+def get_dataset_loader(captions_file, real_img_dir, fake_img_dir):
 
-#inizio con LD perche e gratis e facile da rigenerare se rompo la directory
-#captions_file = "data/hybrid_detector_data/val_LD/mscoco_captions.csv"
-#real_img_dir = "data/hybrid_detector_data/val_LD/class_1"
-#fake_img_dir = "data/hybrid_detector_data/val_LD/class_0"
+    imgs, captions, labels = encode_images_and_captions(captions_file, real_img_dir, fake_img_dir)
+    fused_imgs_captions = fuse_embeddings(imgs, captions)
 
-#imgs, captions, labels = encode_images_and_captions(captions_file, real_img_dir, fake_img_dir)
-#fused_imgs_captions = fuse_embeddings(imgs, captions)
+    fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
+    labels = torch.tensor(labels, dtype=torch.float32)
 
-#print(fused_imgs_captions)
+    hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
+    data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
+
+    return data_loader

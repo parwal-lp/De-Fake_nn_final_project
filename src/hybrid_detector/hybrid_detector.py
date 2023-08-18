@@ -1,11 +1,22 @@
 import os
+import time
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
+from torch.autograd import Variable
 
-from encoder import encode_images_and_captions, fuse_embeddings
-from hybrid_dataset import HybridDataset
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import torch.backends.cudnn as cudnn
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+import os
+from PIL import Image
+from tempfile import TemporaryDirectory
+import torchvision
 
 class TwoLayerPerceptron(torch.nn.Module):
     # 2-layer multilayer perceptron
@@ -24,46 +35,120 @@ class TwoLayerPerceptron(torch.nn.Module):
         out = self.fc2(out)
         out = self.sigmoid(out)
         return out
-    
+
+# Training function. We simply have to loop over our data iterator and feed the inputs to the network and optimize.
+def train_test(model, criterion, optimizer, scheduler, num_epochs, dataloader):
+    since = time.time()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+    # Create a temporary directory to save training checkpoints
+    with TemporaryDirectory() as tempdir:
+        best_model_params_path = os.path.join(tempdir, 'best_model_params.pt')
+
+        torch.save(model.state_dict(), best_model_params_path)
+        best_acc = 0.0
+
+        for epoch in range(num_epochs):
+            print(f'Epoch {epoch}/{num_epochs - 1}')
+            print('-' * 10)
+
+            model.train()  # Set model to training mode
+
+            running_loss = 0.0
+            running_corrects = 0
+
+            # Iterate over data.
+            for inputs, labels in dataloader:
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+
+                # resetta i gradienti
+                optimizer.zero_grad()
+
+                # forward
+                with torch.set_grad_enabled(True):
+                    #print(f'inputs: {inputs}')
+                    outputs = model(inputs)
+                    outputs = outputs.squeeze()
+                    #print(f'outputs: {outputs}')
+                    #print(f'labels: {labels}')
+                    #_, preds = torch.max(outputs, 1)
+                    loss = criterion(outputs, labels)
+                    #print(f'preds: {preds}')
+                    #print(f'loss: {loss}')
+
+                    # backward + optimize only if in training phase
+                    loss.backward()
+                    optimizer.step()
+
+                # statistics
+                running_loss += loss.item() * inputs.size(0)
+                running_corrects += torch.sum(outputs == labels.data)
+            
+            scheduler.step()
+
+            epoch_loss = running_loss / 100
+            epoch_acc = running_corrects.double() / 100
+
+            print(f'Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
+        torch.save(model.state_dict(), best_model_params_path)
+
+        time_elapsed = time.time() - since
+        print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+        print(f'Best val Acc: {best_acc:4f}')
+
+        # load best model weights
+        model.load_state_dict(torch.load(best_model_params_path))
+    return model
+
+
 def train_hybrid_detector(model, data_loader, epochs=50, learning_rate=0.05):
     model.train()
-    #define loss function
-    loss_fn = nn.BCELoss()
-    #define optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-    for epoch in range(0, epochs):   
+    for epoch in range(0, epochs):
+        #define loss function
+        loss_fn = nn.BCELoss()
+        #define optimizer
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         losses = []
         accuracies = []
 
-        #for data, label in zip(Xtrain,ytrain):
-        i = 0
-        for data, label in data_loader:
-            i += 1
+        print(f"epoch: {epoch}/{epochs}")
+
+        for i, (data, label) in enumerate(data_loader):
+            print(f"batch: {i}")
             
             data = data.to(device)
             label = label.to(device)
 
-            optimizer.zero_grad() #set gradients to zero
+            optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
                 pred = model(data)
                 pred = pred.squeeze()
 
                 loss = loss_fn(pred, label)
-                acc = (pred.round() == label).float().mean()
 
                 losses.append(loss)
-                accuracies.append(acc)
-        
+            
                 loss.backward(retain_graph=True)
                 optimizer.step()
+            
+            with torch.no_grad():
+                acc = (pred.round() == label).float().mean()
+                accuracies.append(acc)
+
 
             print(f'batch {i}/{data_loader.__len__()} - acc: {acc}')
 
         print("EPOCH: ", epoch, " - MEAN ACCURACY: ", torch.mean(torch.tensor(accuracies)), " - MEAN LOSS: ", torch.mean(torch.tensor(losses)))
 
-    torch.save(model.state_dict(), 'hybrid_detector.pth')
+    torch.save(model.state_dict(), 'trained_models/hybrid_detector.pth')
 
 def eval_hybrid_detector(model, data_loader):
     model.eval()
@@ -73,16 +158,20 @@ def eval_hybrid_detector(model, data_loader):
     losses = []
     accuracies = []
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     for data, label in data_loader:
         data = data.to(device)
         label = label.to(device)
 
-        with torch.set_grad_enabled(True):
+        with torch.no_grad():
             pred = model(data)
             pred = pred.squeeze()
 
-            loss = loss_fn(pred, label)
+            loss = loss_fn(pred, label.float())
+            
             acc = (pred.round() == label).float().mean()
+            # print(f'{pred} == {label} --> ACC: {acc} LOSS: {loss}')
 
             losses.append(loss)
             accuracies.append(acc)
@@ -90,84 +179,3 @@ def eval_hybrid_detector(model, data_loader):
     mean_loss = torch.mean(torch.tensor(losses))
     mean_acc = torch.mean(torch.tensor(accuracies))
     return mean_loss, mean_acc
-
-## -------- TRAIN --------------------------------------------------------------
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-hybrid_detector = TwoLayerPerceptron(1024, 100, 1).to(device)
-
-# -----------------------------------------  build train dataset
-# captions_file = "data/hybrid_detector_data/mscoco_captions.csv"
-# real_img_dir = "data/hybrid_detector_data/train/class_1"
-# fake_img_dir = "data/hybrid_detector_data/train/class_0"
-
-# imgs, captions, labels = encode_images_and_captions(captions_file, real_img_dir, fake_img_dir)
-# fused_imgs_captions = fuse_embeddings(imgs, captions)
-
-# fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
-# labels = torch.tensor(labels, dtype=torch.float32)
-
-# hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
-# data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
-
-# train_hybrid_detector(hybrid_detector, data_loader, 25, 0.05)
-
-
-## -------- EVAL --------------------------------------------------------------
-# TODO riscrivi tutte ste righe orribili in un unico for che valuta tuti i dataset
-# TODO capisci bene coem si calcola accuracy e loss in caso di batch (mi pare che vengono valori poco sensati, la somma di loss e acc non deve fare 1?)
-os.chdir("../De-Fake_nn_final_project")
-test_hybrid_detector = TwoLayerPerceptron(1024, 100, 1).to(device)
-test_hybrid_detector.load_state_dict(torch.load('hybrid_detector.pth'))
-
-# ------------------------------------------  build test dataset SD
-SD_captions_file = "data/hybrid_detector_data/mscoco_captions.csv"
-SD_real_img_dir = "data/hybrid_detector_data/val/class_1"
-SD_fake_img_dir = "data/hybrid_detector_data/val/class_0"
-
-SD_imgs, SD_captions, SD_labels = encode_images_and_captions(SD_captions_file, SD_real_img_dir, SD_fake_img_dir)
-SD_fused_imgs_captions = fuse_embeddings(SD_imgs, SD_captions)
-
-SD_fused_imgs_captions = torch.stack(SD_fused_imgs_captions).to(torch.float32)
-SD_labels = torch.tensor(SD_labels, dtype=torch.float32)
-
-SD_hybrid_dataset = HybridDataset(SD_fused_imgs_captions, SD_labels)
-SD_data_loader = DataLoader(SD_hybrid_dataset, batch_size=5, shuffle=True)
-
-SDloss, SDacc = eval_hybrid_detector(test_hybrid_detector, SD_data_loader)
-print(f'Evaluation on SD --> Accuracy: {SDacc} Loss: {SDloss}')
-
-# ------------------------------------------  build test dataset GLIDE
-SD_captions_file = "data/hybrid_detector_data/val_GLIDE/mscoco_captions.csv"
-SD_real_img_dir = "data/hybrid_detector_data/val_GLIDE/class_1"
-SD_fake_img_dir = "data/hybrid_detector_data/val_GLIDE/class_0"
-
-SD_imgs, SD_captions, SD_labels = encode_images_and_captions(SD_captions_file, SD_real_img_dir, SD_fake_img_dir)
-SD_fused_imgs_captions = fuse_embeddings(SD_imgs, SD_captions)
-
-SD_fused_imgs_captions = torch.stack(SD_fused_imgs_captions).to(torch.float32)
-SD_labels = torch.tensor(SD_labels, dtype=torch.float32)
-
-SD_hybrid_dataset = HybridDataset(SD_fused_imgs_captions, SD_labels)
-SD_data_loader = DataLoader(SD_hybrid_dataset, batch_size=5, shuffle=True)
-
-SDloss, SDacc = eval_hybrid_detector(test_hybrid_detector, SD_data_loader)
-print(f'Evaluation on GLIDE --> Accuracy: {SDacc} Loss: {SDloss}')
-
-# ------------------------------------------  build test dataset LD
-SD_captions_file = "data/hybrid_detector_data/val_LD/mscoco_captions.csv"
-SD_real_img_dir = "data/hybrid_detector_data/val_LD/class_1"
-SD_fake_img_dir = "data/hybrid_detector_data/val_LD/class_0"
-
-SD_imgs, SD_captions, SD_labels = encode_images_and_captions(SD_captions_file, SD_real_img_dir, SD_fake_img_dir)
-SD_fused_imgs_captions = fuse_embeddings(SD_imgs, SD_captions)
-
-SD_fused_imgs_captions = torch.stack(SD_fused_imgs_captions).to(torch.float32)
-SD_labels = torch.tensor(SD_labels, dtype=torch.float32)
-
-SD_hybrid_dataset = HybridDataset(SD_fused_imgs_captions, SD_labels)
-SD_data_loader = DataLoader(SD_hybrid_dataset, batch_size=5, shuffle=True)
-
-SDloss, SDacc = eval_hybrid_detector(test_hybrid_detector, SD_data_loader)
-print(f'Evaluation on LD --> Accuracy: {SDacc} Loss: {SDloss}')
