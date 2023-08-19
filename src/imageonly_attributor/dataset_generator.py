@@ -11,12 +11,29 @@ import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 
 import pandas as pd
 
-def SD_generation(captions_file, image_save_dir, start_row=None, n_row=None):
 
-    df = pd.read_csv(captions_file, skiprows=start_row, nrows=n_row)
+# define all needed imports
+from PIL import Image
+from IPython.display import display
+import torch
+import pandas as pd
+
+from glide_text2im.download import load_checkpoint
+from glide_text2im.model_creation import (
+    create_model_and_diffusion,
+    model_and_diffusion_defaults,
+    model_and_diffusion_defaults_upsampler
+)
+
+def SD_generation(captions_file, image_save_dir):
+
+    df = pd.read_csv(captions_file)
+
+    if not os.path.isdir(image_save_dir):
+        os.makedirs(image_save_dir)
 
     os.environ['STABILITY_HOST'] = 'grpc.stability.ai:443'
-    os.environ['STABILITY_KEY'] = 'sk-ycUshgL0LUVYID9ITyDBcKrcHpdIsov0k8fDA6OVfGIrXMqU'
+    os.environ['STABILITY_KEY'] = 'sk-MFXpvUDseokEPGDIK7MW2a0KoB50fgPjI1KeFy6mw4KLFITt'
 
     # Set up our connection to the API.
     stability_api = client.StabilityInference(
@@ -61,13 +78,11 @@ def SD_generation(captions_file, image_save_dir, start_row=None, n_row=None):
             print(f"Your request activated the API's safety filters and could not be processed.Please modify the prompt and try again.\nCurrent prompt (detected invalid)s: {text_prompt}")
 
 
-def LD_generation(captions_file, start_row=None, n_row=None):
+def LD_generation(captions_file):
+    df = pd.read_csv(captions_file)
+
+    # move to the LD directory, we need to be here to call its model
     ld_dir = "/home/parwal/Documents/GitHub/latent-diffusion"
-
-    if start_row!=None: n_row+=1 #se non inizio dalla prima riga, devo comunque leggere la riga 0, che contiene gli header, quindi dovro leggere una riga in piu
-
-    df = pd.read_csv(captions_file, skiprows=[i for i in range(1,start_row)], nrows=n_row)
-
     os.chdir(ld_dir)
 
     prompt_dictionary = {}
@@ -106,10 +121,63 @@ def LD_generation(captions_file, start_row=None, n_row=None):
     proj_dir = "../De-Fake_nn_final_project"
     os.chdir(proj_dir)
 
+def GLIDE_generation(captions_file, image_save_dir):
+    if not os.path.isdir(image_save_dir):
+        os.makedirs(image_save_dir)
+    # Define the device for computation (GPU or CPU)
+    # On CPU, generating one sample may take on the order of 20 minutes.
+    # On a GPU, it should be under a minute.
+    has_cuda = torch.cuda.is_available()
+    device = torch.device('cpu' if not has_cuda else 'cuda')
+    print(device)
 
-def GLIDE_generation(captions_file, image_save_dir, start_row=None, n_row=None):
-    if start_row!=None: n_row+=1
-    df = pd.read_csv(captions_file, skiprows=[i for i in range(1,start_row)], nrows=n_row)
+    # Create base model.
+    options = model_and_diffusion_defaults()
+    options['use_fp16'] = has_cuda
+    options['timestep_respacing'] = '100' # use 100 diffusion steps for fast sampling
+    model, diffusion = create_model_and_diffusion(**options)
+    model.eval()
+    if has_cuda:
+        model.convert_to_fp16()
+    model.to(device)
+    model.load_state_dict(load_checkpoint('base', device))
+    print('total base parameters', sum(x.numel() for x in model.parameters()))
+
+    # Create upsampler model.
+    options_up = model_and_diffusion_defaults_upsampler()
+    options_up['use_fp16'] = has_cuda
+    options_up['timestep_respacing'] = 'fast27' # use 27 diffusion steps for very fast sampling
+    model_up, diffusion_up = create_model_and_diffusion(**options_up)
+    model_up.eval()
+    if has_cuda:
+        model_up.convert_to_fp16()
+    model_up.to(device)
+    model_up.load_state_dict(load_checkpoint('upsample', device))
+    print('total upsampler parameters', sum(x.numel() for x in model_up.parameters()))
+
+    # Define sampling parameters
+    batch_size = 1
+    guidance_scale = 3.0
+    upsample_temp = 0.997
+    # N.B. Tune the last parameter to control the sharpness of 256x256 images.
+    # A value of 1.0 is sharper, but sometimes results in grainy artifacts.
+
+
+    # Create a classifier-free guidance sampling function
+    def model_fn(x_t, ts, **kwargs):
+        half = x_t[: len(x_t) // 2]
+        combined = torch.cat([half, half], dim=0)
+        model_out = model(combined, ts, **kwargs)
+        eps, rest = model_out[:, :3], model_out[:, 3:]
+        cond_eps, uncond_eps = torch.split(eps, len(eps) // 2, dim=0)
+        half_eps = uncond_eps + guidance_scale * (cond_eps - uncond_eps)
+        eps = torch.cat([half_eps, half_eps], dim=0)
+        return torch.cat([eps, rest], dim=1)
+
+    # Generate the images starting from a file containing the prompts
+
+    # identify prompts file
+    df = pd.read_csv(captions_file)
 
     for index, row in df.iterrows():
         prompt = df.iloc[index]['caption']
@@ -131,12 +199,12 @@ def GLIDE_generation(captions_file, image_save_dir, start_row=None, n_row=None):
 
         # Pack the tokens together into model kwargs.
         model_kwargs = dict(
-            tokens=th.tensor(
+            tokens=torch.tensor(
                 [tokens] * batch_size + [uncond_tokens] * batch_size, device=device
             ),
-            mask=th.tensor(
+            mask=torch.tensor(
                 [mask] * batch_size + [uncond_mask] * batch_size,
-                dtype=th.bool,
+                dtype=torch.bool,
                 device=device,
             ),
         )
@@ -167,12 +235,12 @@ def GLIDE_generation(captions_file, image_save_dir, start_row=None, n_row=None):
             low_res=((samples+1)*127.5).round()/127.5 - 1,
 
             # Text tokens
-            tokens=th.tensor(
+            tokens=torch.tensor(
                 [tokens] * batch_size, device=device
             ),
-            mask=th.tensor(
+            mask=torch.tensor(
                 [mask] * batch_size,
-                dtype=th.bool,
+                dtype=torch.bool,
                 device=device,
             ),
         )
@@ -183,7 +251,7 @@ def GLIDE_generation(captions_file, image_save_dir, start_row=None, n_row=None):
         up_samples = diffusion_up.ddim_sample_loop(
             model_up,
             up_shape,
-            noise=th.randn(up_shape, device=device) * upsample_temp,
+            noise=torch.randn(up_shape, device=device) * upsample_temp,
             device=device,
             clip_denoised=True,
             progress=True,
@@ -194,7 +262,7 @@ def GLIDE_generation(captions_file, image_save_dir, start_row=None, n_row=None):
 
         # ----- SAVE THE FINAL OUTPUT IMAGE -------------------------------------
 
-        scaled = ((up_samples + 1)*127.5).round().clamp(0,255).to(th.uint8).cpu()
+        scaled = ((up_samples + 1)*127.5).round().clamp(0,255).to(torch.uint8).cpu()
         reshaped = scaled.permute(2, 0, 3, 1).reshape([up_samples.shape[2], -1, 3])
         img = Image.fromarray(reshaped.numpy())
-        img.save(f'data/GLIDE+MSCOCO/images/fake_{image_id}.jpg', 'JPEG')
+        img.save(f'{image_save_dir}/fake_{image_id}.jpg', 'JPEG')
