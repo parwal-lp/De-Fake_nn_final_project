@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
-        "./src/imageonly_detector"
+        "./src/imageonly_detector",
+        "./src/hybrid_detector"
     ]
 }

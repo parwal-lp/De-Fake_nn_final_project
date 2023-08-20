@@ -5,7 +5,7 @@ import clip
 from PIL import Image
 from torch.utils.data import DataLoader
 
-from hybrid_dataset import HybridDataset
+from src.hybrid_dataset import HybridDataset
 
 # these instructions are needed to:
 # - encode an input image using CLIP image encoder
@@ -122,11 +122,17 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
                 if (class_name == "class_real" or class_name == "class_1"): #le real hanno il nome uguale all'id
                     if str(df.iloc[index]['img_id']) == img_name[:-4]:
                         caption = df.iloc[index]['caption']
-                        img_class = 1
+                        # img_class = 1
                 else: #le fake hanno il nome uguale a "fake_id", defo rimuovere il "fake_"
                     if str(df.iloc[index]['img_id']) == img_name[5:-4]:
                         caption = df.iloc[index]['caption']
-                        img_class = 0
+                        #img_class = 0
+
+                #img_class = [class_name=="class_real", class_name=="class_SD", class_name=="class_LD", class_name=="class_GLIDE"]
+                if class_name == "class_real": img_class = 0
+                elif class_name == "class_SD": img_class = 1
+                elif class_name == "class_LD": img_class = 2
+                elif class_name == "class_GLIDE": img_class = 3
 
 
             #tensor_label = transforms.ToTensor()(label).to(device)
@@ -146,7 +152,7 @@ def get_multiclass_dataset_loader(captions_file, dataset_dir, classes):
     fused_imgs_captions = fuse_embeddings(imgs, captions)
 
     fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
-    labels = torch.tensor(labels, dtype=torch.float32)
+    labels = torch.tensor(labels, dtype=torch.long)
 
     hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
     data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
