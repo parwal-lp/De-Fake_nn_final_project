@@ -13,6 +13,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
+from torch.utils.data import TensorDataset
 
 
 class HybridDataset(Dataset):
@@ -34,7 +35,8 @@ class HybridDataset(Dataset):
 def fuse_embeddings(encoded_images, encoded_labels):
     fused_embeddings = []
     for img, lab in zip(encoded_images, encoded_labels):
-        img_lab = torch.cat((img, lab), dim=1)
+        img_lab = torch.cat((img, lab))
+        #print(img_lab.shape)
         fused_embeddings.append(img_lab)
     return fused_embeddings
 
@@ -64,9 +66,11 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
             img = Image.open(img_path)
 
             #tensor_img = transforms.ToTensor()(img).to(device)
-            tensor_img = preprocess(img).unsqueeze(0).to(device)
-            encoded_img = model.encode_image(tensor_img)
-
+            tensor_img = preprocess(img).unsqueeze(0).to(device) # Ritorna un tensore batchsize*channels*height*width (1x3x224x224)
+            
+            encoded_img = model.encode_image(tensor_img) # Ritorna un tensore batchsize*num_features (1x512)
+            encoded_img = encoded_img.squeeze() # rimuovo la dimensione della batchsize=1
+            #print(encoded_img.shape)
             caption = ""
             img_class = None
             for index, row in df.iterrows():
@@ -87,9 +91,12 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
 
 
             #tensor_label = transforms.ToTensor()(label).to(device)
-            tensor_caption = torch.cat([clip.tokenize(caption)]).to(device)
-            encoded_caption = model.encode_text(tensor_caption)
-
+            #tensor_caption = torch.cat([clip.tokenize(caption)]).to(device)
+            tensor_caption = clip.tokenize(caption).to(device) # Returns a tensor batchsize*num_tokens (1x77)
+            
+            encoded_caption = model.encode_text(tensor_caption) # Returns a tensor batchsize*num_features (1x512)
+            encoded_caption = encoded_caption.squeeze()
+            #print(encoded_caption.shape)
             encoded_images.append(encoded_img)
             encoded_captions.append(encoded_caption)
             labels.append(img_class)
@@ -99,13 +106,22 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
 
 
 def get_multiclass_dataset_loader(captions_file, dataset_dir, classes):
-    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes)
-    fused_imgs_captions = fuse_embeddings(imgs, captions)
+    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes) # questa funzione restituisce delle liste
+    #print(len(imgs), len(captions), len(labels))
+    fused_imgs_captions = fuse_embeddings(imgs, captions) # questa funzione ritorna una lista
 
-    fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
-    labels = torch.tensor(labels, dtype=torch.long)
+    #print("embedding created by my function: ", fused_imgs_captions[0])
 
-    hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
+    fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32) # ottengo un unico tensore che contiene tutti gli embeddings (n_embeddings*dim_embeddings = 198x1024)
+    for tensor in fused_imgs_captions:
+        tensor = tensor.detach()
+    fused_imgs_captions = fused_imgs_captions.detach()
+    #fused_imgs_captions.requires_grad_(False)
+    #print("embedding", fused_imgs_captions.shape)
+    labels = torch.tensor(labels, dtype=torch.long) # ottengo un unico tensore che contiene tutte le labels (n_embeddings = 198)
+    #print("labels", labels.shape)
+
+    hybrid_dataset = TensorDataset(fused_imgs_captions, labels)
     data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
 
     return data_loader
@@ -113,13 +129,13 @@ def get_multiclass_dataset_loader(captions_file, dataset_dir, classes):
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(1024, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 4)
+        #self.fc1 = nn.Linear(1024, 120)
+        #self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(1024, 4)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        #x = F.relu(self.fc1(x))
+        #x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
     
@@ -133,6 +149,16 @@ classes = {"class_real", "class_SD", "class_LD", "class_GLIDE"}
 
 trainloader = get_multiclass_dataset_loader(captions_file, dataset_dir, classes)
 
+test_data = []
+test_labels = []
+
+for i, (sample_data, sample_class) in enumerate(trainloader, 0):
+    if i<5:
+        test_data.append(sample_data)
+        test_labels.append(sample_class)
+
+print("test data: ", test_data, "test_labels: ", test_labels)
+
 net = Net().to(device)
 
 import torch.optim as optim
@@ -144,28 +170,21 @@ for epoch in range(2):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, (sample_data, sample_class) in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
+    #for sample_data, sample_class in zip(test_data, test_labels):
         inputs = sample_data.to(device)
         labels = sample_class.to(device)
 
-        # zero the parameter gradients
         optimizer.zero_grad()
-
-        # forward + backward + optimize
         
         outputs = net(inputs)
+
+        print(f"pred output: {outputs}, Target: {labels}")
         
-        outputs = outputs.squeeze()
-        _, preds = torch.max(outputs, 1)
+        #_, preds = torch.max(outputs_detach, 1)
+
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-            running_loss = 0.0
 
 print('Finished Training')
 

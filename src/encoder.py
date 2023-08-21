@@ -6,6 +6,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 
 from src.hybrid_dataset import HybridDataset
+from torch.utils.data import TensorDataset
 
 # these instructions are needed to:
 # - encode an input image using CLIP image encoder
@@ -66,6 +67,14 @@ def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
     return encoded_images, encoded_captions, labels
 
 
+def fuse_multiclass_embeddings(encoded_images, encoded_labels):
+    fused_embeddings = []
+    for img, lab in zip(encoded_images, encoded_labels):
+        img_lab = torch.cat((img, lab))
+        #print(img_lab.shape)
+        fused_embeddings.append(img_lab)
+    return fused_embeddings
+
 def fuse_embeddings(encoded_images, encoded_labels):
     fused_embeddings = []
     for img, lab in zip(encoded_images, encoded_labels):
@@ -113,9 +122,11 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
             img = Image.open(img_path)
 
             #tensor_img = transforms.ToTensor()(img).to(device)
-            tensor_img = preprocess(img).unsqueeze(0).to(device)
-            encoded_img = model.encode_image(tensor_img)
-
+            tensor_img = preprocess(img).unsqueeze(0).to(device) # Ritorna un tensore batchsize*channels*height*width (1x3x224x224)
+            
+            encoded_img = model.encode_image(tensor_img) # Ritorna un tensore batchsize*num_features (1x512)
+            encoded_img = encoded_img.squeeze() # rimuovo la dimensione della batchsize=1
+            #print(encoded_img.shape)
             caption = ""
             img_class = None
             for index, row in df.iterrows():
@@ -136,9 +147,12 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
 
 
             #tensor_label = transforms.ToTensor()(label).to(device)
-            tensor_caption = torch.cat([clip.tokenize(caption)]).to(device)
-            encoded_caption = model.encode_text(tensor_caption)
-
+            #tensor_caption = torch.cat([clip.tokenize(caption)]).to(device)
+            tensor_caption = clip.tokenize(caption).to(device) # Returns a tensor batchsize*num_tokens (1x77)
+            
+            encoded_caption = model.encode_text(tensor_caption) # Returns a tensor batchsize*num_features (1x512)
+            encoded_caption = encoded_caption.squeeze()
+            #print(encoded_caption.shape)
             encoded_images.append(encoded_img)
             encoded_captions.append(encoded_caption)
             labels.append(img_class)
@@ -148,13 +162,22 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
 
 
 def get_multiclass_dataset_loader(captions_file, dataset_dir, classes):
-    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes)
-    fused_imgs_captions = fuse_embeddings(imgs, captions)
+    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes) # questa funzione restituisce delle liste
+    #print(len(imgs), len(captions), len(labels))
+    fused_imgs_captions = fuse_multiclass_embeddings(imgs, captions) # questa funzione ritorna una lista
 
-    fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
-    labels = torch.tensor(labels, dtype=torch.long)
+    #print("embedding created by my function: ", fused_imgs_captions[0])
 
-    hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
+    fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32) # ottengo un unico tensore che contiene tutti gli embeddings (n_embeddings*dim_embeddings = 198x1024)
+    for tensor in fused_imgs_captions:
+        tensor = tensor.detach()
+    fused_imgs_captions = fused_imgs_captions.detach()
+    #fused_imgs_captions.requires_grad_(False)
+    #print("embedding", fused_imgs_captions.shape)
+    labels = torch.tensor(labels, dtype=torch.long) # ottengo un unico tensore che contiene tutte le labels (n_embeddings = 198)
+    #print("labels", labels.shape)
+
+    hybrid_dataset = TensorDataset(fused_imgs_captions, labels)
     data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
 
     return data_loader
