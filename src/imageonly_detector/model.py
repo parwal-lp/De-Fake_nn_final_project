@@ -2,59 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-import torch.backends.cudnn as cudnn
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 import os
-from PIL import Image
 from tempfile import TemporaryDirectory
-import torchvision
 
-cudnn.benchmark = True
-plt.ion()   # interactive mode
-
-
-## ---------------- PREPARE THE DATA -------------------- ##
-data_transforms = {
-    'train': torchvision.transforms.Compose([
-        torchvision.transforms.RandomResizedCrop(224),
-        torchvision.transforms.RandomHorizontalFlip(),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': torchvision.transforms.Compose([
-        torchvision.transforms.Resize(256),
-        torchvision.transforms.CenterCrop(224),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val_LD': torchvision.transforms.Compose([
-        torchvision.transforms.Resize(256),
-        torchvision.transforms.CenterCrop(224),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val_GLIDE': torchvision.transforms.Compose([
-        torchvision.transforms.Resize(256),
-        torchvision.transforms.CenterCrop(224),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-
-data_dir = 'data/imageonly_detector_data'
-image_datasets = {x: torchvision.datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val', 'val_LD', 'val_GLIDE']}
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val', 'val_LD', 'val_GLIDE']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val', 'val_LD', 'val_GLIDE']}
-class_names = image_datasets['train'].classes
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-## ------------------- DEFINE TRAIN FUNCTION ---------------- ##
-
-def train_model(model, dataloaders, dataset_sizes, num_epochs):
+def train_imageonly_detector(model, dataloaders, dataset_sizes, num_epochs):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model.train()
@@ -63,7 +15,7 @@ def train_model(model, dataloaders, dataset_sizes, num_epochs):
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     # Create a temporary directory to save training checkpoints
     with TemporaryDirectory() as tempdir:
@@ -137,10 +89,12 @@ def train_model(model, dataloaders, dataset_sizes, num_epochs):
     return model
 
 
-def eval_model(model, criterion):
+def eval_imageonly_detector(model, dataloaders, dataset_sizes):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model.eval()
+
+    criterion = nn.CrossEntropyLoss()
 
     since = time.time()
 
@@ -174,30 +128,3 @@ def eval_model(model, criterion):
 
     time_elapsed = time.time() - since
     print(f'Evaluation complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-
-## ---------------------- DEFINE MODEL -------------------------- ##
-#this is a model based on resnet18
-model_ft = torchvision.models.resnet18(weights='IMAGENET1K_V1')
-num_ftrs = model_ft.fc.in_features
-# Here the size of each output sample is set to 2.
-# Alternatively, it can be generalized to ``nn.Linear(num_ftrs, len(class_names))``.
-model_ft.fc = nn.Linear(num_ftrs, 2)
-
-model_ft = model_ft.to(device)
-
-criterion = nn.CrossEntropyLoss()
-
-# Observe that all parameters are being optimized
-optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
-
-
-print("train dataset size:", dataset_sizes['train'])
-print("test dataset size:", dataset_sizes['val'])
-
-## START TRAINING THE MODEL ##
-model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=50)
-
-eval_model(model_ft, criterion)
