@@ -13,15 +13,11 @@ class MultiClassTwoLayerPerceptron(torch.nn.Module):
         self.fc1 = nn.Linear(in_size, h_size)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(h_size, out_size)
-        #self.softmax = nn.Softmax(dim=1)
-        #self.sigmoid = nn.Sigmoid()
         
     def forward(self, inputs):
         out = self.fc1(inputs)
         out = self.relu(out)
         out = self.fc2(out)
-        #out = self.softmax(out)
-        #out = self.sigmoid(out)
         return out
 
 def train_hybrid_attributor(model, data_loader, epochs, learning_rate):

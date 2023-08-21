@@ -41,6 +41,7 @@ def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
             #tensor_img = transforms.ToTensor()(img).to(device)
             tensor_img = preprocess(img).unsqueeze(0).to(device)
             encoded_img = model.encode_image(tensor_img)
+            encoded_img = encoded_img.squeeze()
 
             caption = ""
             img_class = None
@@ -56,8 +57,9 @@ def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
 
 
             #tensor_label = transforms.ToTensor()(label).to(device)
-            tensor_caption = torch.cat([clip.tokenize(caption)]).to(device)
+            tensor_caption = clip.tokenize(caption).to(device)
             encoded_caption = model.encode_text(tensor_caption)
+            encoded_caption = encoded_caption.squeeze()
 
             encoded_images.append(encoded_img)
             encoded_captions.append(encoded_caption)
@@ -78,7 +80,7 @@ def fuse_multiclass_embeddings(encoded_images, encoded_labels):
 def fuse_embeddings(encoded_images, encoded_labels):
     fused_embeddings = []
     for img, lab in zip(encoded_images, encoded_labels):
-        img_lab = torch.cat((img, lab), dim=1)
+        img_lab = torch.cat((img, lab))#, dim=1)
         fused_embeddings.append(img_lab)
     return fused_embeddings
 
@@ -88,9 +90,13 @@ def get_dataset_loader(captions_file, real_img_dir, fake_img_dir):
     fused_imgs_captions = fuse_embeddings(imgs, captions)
 
     fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
+    for tensor in fused_imgs_captions:
+        tensor = tensor.detach()
+    fused_imgs_captions = fused_imgs_captions.detach()
+
     labels = torch.tensor(labels, dtype=torch.float32)
 
-    hybrid_dataset = HybridDataset(fused_imgs_captions, labels)
+    hybrid_dataset = TensorDataset(fused_imgs_captions, labels)
     data_loader = DataLoader(hybrid_dataset, batch_size=5, shuffle=True)
 
     return data_loader
