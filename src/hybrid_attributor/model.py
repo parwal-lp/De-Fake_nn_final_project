@@ -24,6 +24,7 @@ def train_hybrid_attributor(model, data_loader, epochs, learning_rate):
     model.train()
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
     #define loss function
     loss_fn = nn.CrossEntropyLoss()
@@ -69,3 +70,34 @@ def train_hybrid_attributor(model, data_loader, epochs, learning_rate):
         print("EPOCH: ", f"{epoch+1}/{epochs}", " - MEAN ACCURACY: ", torch.mean(torch.tensor(accuracies)), " - MEAN LOSS: ", torch.mean(torch.tensor(losses)))
 
     torch.save(model.state_dict(), 'trained_models/hybrid_attributor.pth')
+
+def eval_hybrid_attributor(model, dataloader):
+    model.eval()
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    loss_fn = nn.CrossEntropyLoss()
+
+
+    losses = []
+    accuracies = []
+
+    for i, (sample_data, sample_class) in enumerate(dataloader):
+        
+        data = sample_data.to(device)
+        label = sample_class.to(device)
+
+        pred = model(data)
+
+        loss = loss_fn(pred, label)
+        
+        losses.append(loss)
+
+        predicted_class = torch.argmax(pred, dim=1)
+    
+        acc = (predicted_class == label).float().mean()
+        accuracies.append(acc)
+
+
+    print(f"Evaluation results -> ACC: {torch.mean(torch.tensor(accuracies))} - LOSS: {torch.mean(torch.tensor(losses))}")

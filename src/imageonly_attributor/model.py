@@ -79,6 +79,9 @@ def train_imageonly_attributor(model, dataloaders, dataset_sizes, num_epochs):
 
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
+
+    torch.save(model.state_dict(), 'trained_models/imageonly_attributor.pth')
+
     return model
 
 
@@ -86,6 +89,7 @@ def eval_imageonly_attributor(model, dataloaders, dataset_sizes):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model.eval()
+    model.to(device)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -115,4 +119,4 @@ def eval_imageonly_attributor(model, dataloaders, dataset_sizes):
         loss = running_loss / dataset_sizes[phase]
         acc = running_corrects.double() / dataset_sizes[phase]
 
-        print(f'TEST LOSS: {loss:.4f} ACC: {acc:.4f}')
+        print(f'Evaluation results -> ACC: {acc:.4f} - LOSS: {loss:.4f}')

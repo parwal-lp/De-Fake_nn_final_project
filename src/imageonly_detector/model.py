@@ -86,6 +86,8 @@ def train_imageonly_detector(model, dataloaders, dataset_sizes, num_epochs):
 
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
+    
+    torch.save(model.state_dict(), 'trained_models/imageonly_detector.pth')
     return model
 
 
@@ -98,7 +100,10 @@ def eval_imageonly_detector(model, dataloaders, dataset_sizes):
 
     since = time.time()
 
-    for phase in ['val_LD', 'val_GLIDE']:
+    for phase in ['val', 'val_LD', 'val_GLIDE']:
+        if phase == 'val': dataset_name = 'SD'
+        if phase == 'val_LD': dataset_name = 'LD'
+        if phase == 'val_GLIDE': dataset_name = 'GLIDE'
 
         running_loss = 0.0
         running_corrects = 0
@@ -124,7 +129,7 @@ def eval_imageonly_detector(model, dataloaders, dataset_sizes):
         loss = running_loss / dataset_sizes[phase]
         acc = running_corrects.double() / dataset_sizes[phase]
 
-        print(f'{phase} Loss: {loss:.4f} Acc: {acc:.4f}')
+        print(f'Evaluation on {dataset_name} -> Acc: {acc:.4f} - Loss: {loss:.4f}')
 
     time_elapsed = time.time() - since
     print(f'Evaluation complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
