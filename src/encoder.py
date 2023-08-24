@@ -13,15 +13,16 @@ from torch.utils.data import TensorDataset
 # - encode its label using CLIP text encoder
 # - concatenate these two embeddings into a single item (that becomes the input for the training of our classifier)
 
-def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir):
+def encode_images_and_captions(captions_file, real_img_dir, fake_img_dir, clip_dir, proj_dir):
 
-    clip_dir = "../CLIP/"
+    #clip_dir = "../CLIP/"
     os.chdir(clip_dir)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load("ViT-B/32", device=device)
 
-    os.chdir("../De-Fake_nn_final_project")
+    #proj_dir = "../De-Fake_nn_final_project"
+    os.chdir(proj_dir)
     #print(os.getcwd())
 
     img_dirs = [real_img_dir, fake_img_dir]
@@ -84,9 +85,9 @@ def fuse_embeddings(encoded_images, encoded_labels):
         fused_embeddings.append(img_lab)
     return fused_embeddings
 
-def get_dataset_loader(captions_file, real_img_dir, fake_img_dir):
+def get_dataset_loader(captions_file, real_img_dir, fake_img_dir, clip_dir, proj_dir):
 
-    imgs, captions, labels = encode_images_and_captions(captions_file, real_img_dir, fake_img_dir)
+    imgs, captions, labels = encode_images_and_captions(captions_file, real_img_dir, fake_img_dir, clip_dir, proj_dir)
     fused_imgs_captions = fuse_embeddings(imgs, captions)
 
     fused_imgs_captions = torch.stack(fused_imgs_captions).to(torch.float32)
@@ -102,15 +103,16 @@ def get_dataset_loader(captions_file, real_img_dir, fake_img_dir):
     return data_loader
 
 
-def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_names):
+def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_names, clip_dir, proj_dir):
 
-    clip_dir = "../CLIP/"
+    #clip_dir = "../CLIP/"
     os.chdir(clip_dir)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load("ViT-B/32", device=device)
 
-    os.chdir("../De-Fake_nn_final_project")
+    #proj_dir = "../De-Fake_nn_final_project"
+    os.chdir(proj_dir)
     #print(os.getcwd())
 
     df = pd.read_csv(captions_file)
@@ -167,8 +169,8 @@ def encode_multiclass_images_and_captions(captions_file, dataset_dir, class_name
     return encoded_images, encoded_captions, labels
 
 
-def get_multiclass_dataset_loader(captions_file, dataset_dir, classes):
-    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes) # questa funzione restituisce delle liste
+def get_multiclass_dataset_loader(captions_file, dataset_dir, classes, clip_dir, proj_dir):
+    imgs, captions, labels = encode_multiclass_images_and_captions(captions_file, dataset_dir, classes, clip_dir, proj_dir) # questa funzione restituisce delle liste
     #print(len(imgs), len(captions), len(labels))
     fused_imgs_captions = fuse_multiclass_embeddings(imgs, captions) # questa funzione ritorna una lista
 
