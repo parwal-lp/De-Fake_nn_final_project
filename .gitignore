@@ -2,3 +2,4 @@ data/
 glide_model_cache/
 **/__pycache__
 trained_models/
+annotations_trainval2017/

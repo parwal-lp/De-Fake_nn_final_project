@@ -6,10 +6,14 @@ import os
 
 def fetchImagesFromMSCOCO(save_img_dir, save_caption_dir, n_instances):
     # Provide the path to the annotations file
-    dataDir = 'data'
+    # dataDir = 'data'
     dataType = 'train2017'  # Select the appropriate dataset subset
-    instancesFile = f'{dataDir}/MSCOCO/annotations/annotations_trainval2017/instances_{dataType}.json'
-    captionsFile = f'{dataDir}/MSCOCO/annotations/annotations_trainval2017/captions_{dataType}.json'
+    # instancesFile = f'{dataDir}/MSCOCO/annotations/annotations_trainval2017/instances_{dataType}.json'
+    # captionsFile = f'{dataDir}/MSCOCO/annotations/annotations_trainval2017/captions_{dataType}.json'
+
+    instancesFile = f'annotations_trainval2017/annotations/instances_{dataType}.json'
+    captionsFile = f'annotations_trainval2017/annotations/captions_{dataType}.json'
+
 
     if not os.path.isdir(save_img_dir):
         os.makedirs(save_img_dir)

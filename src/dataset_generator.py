@@ -25,7 +25,7 @@ from glide_text2im.model_creation import (
     model_and_diffusion_defaults_upsampler
 )
 
-def SD_generation(captions_file, image_save_dir):
+def SD_generation(captions_file, image_save_dir, SD_api_key):
 
     df = pd.read_csv(captions_file)
 
@@ -33,7 +33,7 @@ def SD_generation(captions_file, image_save_dir):
         os.makedirs(image_save_dir)
 
     os.environ['STABILITY_HOST'] = 'grpc.stability.ai:443'
-    os.environ['STABILITY_KEY'] = 'sk-MFXpvUDseokEPGDIK7MW2a0KoB50fgPjI1KeFy6mw4KLFITt'
+    os.environ['STABILITY_KEY'] = SD_api_key #'sk-MFXpvUDseokEPGDIK7MW2a0KoB50fgPjI1KeFy6mw4KLFITt'
 
     # Set up our connection to the API.
     stability_api = client.StabilityInference(
@@ -78,11 +78,11 @@ def SD_generation(captions_file, image_save_dir):
             print(f"Your request activated the API's safety filters and could not be processed.Please modify the prompt and try again.\nCurrent prompt (detected invalid)s: {text_prompt}")
 
 
-def LD_generation(captions_file):
+def LD_generation(captions_file, ld_dir):
     df = pd.read_csv(captions_file)
 
     # move to the LD directory, we need to be here to call its model
-    ld_dir = "/home/parwal/Documents/GitHub/latent-diffusion"
+    #ld_dir = "/home/parwal/Documents/GitHub/latent-diffusion"
     os.chdir(ld_dir)
 
     prompt_dictionary = {}
@@ -118,10 +118,9 @@ def LD_generation(captions_file):
 
     print(f"All images generated successfully. You can find them at latent-diffusion/outputs/txt2img-samples")
 
-    proj_dir = "../De-Fake_nn_final_project"
     os.chdir(proj_dir)
 
-def GLIDE_generation(captions_file, image_save_dir):
+def GLIDE_generation(captions_file, image_save_dir, glide_dir):
     if not os.path.isdir(image_save_dir):
         os.makedirs(image_save_dir)
     # Define the device for computation (GPU or CPU)
@@ -265,4 +264,5 @@ def GLIDE_generation(captions_file, image_save_dir):
         scaled = ((up_samples + 1)*127.5).round().clamp(0,255).to(torch.uint8).cpu()
         reshaped = scaled.permute(2, 0, 3, 1).reshape([up_samples.shape[2], -1, 3])
         img = Image.fromarray(reshaped.numpy())
+        print(f"saved {image_save_dir}/fake_{image_id}.jpg")
         img.save(f'{image_save_dir}/fake_{image_id}.jpg', 'JPEG')

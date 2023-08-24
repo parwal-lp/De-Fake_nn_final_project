@@ -21,16 +21,15 @@ Therefore, this research proposes methods to answer the following 3 research que
 - **RQ3**. Analysis of the likelihood that different text prompts have to generate authentic images
 <br>
 
-Examples for my implementation of the described methods are provided in the [Notebook](Notebook.ipynb)
+Instructions on how to run and test the models, using pre-built datasets and pre-trained weights can be found in the [Notebook](tldr_notebook.ipynb).<br>
+The complete description of the work, including data fetching, dataset building, model design and training, can be fount in the [Complete Notebook](complete_notebook.ipynb). This can be used to reproduce from scratch all the work of this project.
 <br>
-The complete implementation of the models can be found in the source directory of this GitHub repository [Source Code](/src)
+The complete code of this project can be found in the source directory of this GitHub repository [Source Code](https://github.com/parwal-lp/De-Fake_nn_final_project/src).
 
-# Installation Instructions
-
-To install and run all the implemented models, execute the following
-[...]
 
 ## Prerequisites
+This project was implemented using Python 3.8.10.
+
 - install pandas
     ```
     pip install pandas
@@ -59,14 +58,13 @@ To install and run all the implemented models, execute the following
     pip install -e .
     pip install nbformat
     ```
-- install CLIP (from OpenAI, required for Latend Diffusion)
+- install CLIP (from OpenAI, required to encode images and captions for the hybrid models)
     ```
     pip install ftfy regex tqdm
     ```
 - modify the latent-diffusion files according to the commit<br>
     https://github.com/CompVis/latent-diffusion/pull/123/files<br>
-    in order to be able to run the model on cpu only
-    
-## Project execution instructions
-### In order to fetch 100 random images from MSCOCO dataset
-    run data_collection.py
+    in order to be able to run the model on cpu only<br><br>
+- download the [MSCOCO annotations](images.cocodataset.org/annotations/annotations_trainval2017.zip).<br>
+    Extract the downloaded folder and place it at the root of this repository.<br><br>
+- Register to [Stable Diffusion](https://platform.stability.ai/) and obtain an API key.
