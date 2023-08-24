@@ -1,2 +1,3 @@
 data/
 glide_model_cache/
+**/__pycache__
