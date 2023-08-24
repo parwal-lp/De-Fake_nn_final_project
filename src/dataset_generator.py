@@ -78,7 +78,7 @@ def SD_generation(captions_file, image_save_dir, SD_api_key):
             print(f"Your request activated the API's safety filters and could not be processed.Please modify the prompt and try again.\nCurrent prompt (detected invalid)s: {text_prompt}")
 
 
-def LD_generation(captions_file, ld_dir):
+def LD_generation(captions_file, ld_dir, proj_dir):
     df = pd.read_csv(captions_file)
 
     # move to the LD directory, we need to be here to call its model
