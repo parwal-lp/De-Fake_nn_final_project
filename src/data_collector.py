@@ -18,6 +18,8 @@ def fetchImagesFromMSCOCO(save_img_dir, save_caption_dir, n_instances):
     if not os.path.isdir(save_img_dir):
         os.makedirs(save_img_dir)
 
+    if not os.path.isdir(save_caption_dir):
+        os.makedirs(save_caption_dir)
 
     # Initialize COCO API
     cocoImages = COCO(instancesFile)

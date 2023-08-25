@@ -67,4 +67,4 @@ This project was implemented using Python 3.8.10.
     in order to be able to run the model on cpu only<br><br>
 - download the [MSCOCO annotations](images.cocodataset.org/annotations/annotations_trainval2017.zip).<br>
     Extract the downloaded folder and place it at the root of this repository.<br><br>
-- Register to [Stable Diffusion](https://platform.stability.ai/) and obtain an API key.
+- Register to [Stable Diffusion](https://platform.stability.ai/) and obtain an API key (credit for at least 400 images are needed).

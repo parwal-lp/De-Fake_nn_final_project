@@ -87,6 +87,8 @@ def train_imageonly_detector(model, dataloaders, dataset_sizes, num_epochs):
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
     
+    if not os.path.isdir("trained_models/"): os.makedirs("trained_models/")
+
     torch.save(model.state_dict(), 'trained_models/imageonly_detector.pth')
     return model
 

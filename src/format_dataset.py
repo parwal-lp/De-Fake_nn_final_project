@@ -68,16 +68,18 @@ def format_dataset_binaryclass(fake_imgs_path, dest_dataset_dir):
             else:
                 dest_path = os.path.join(f"{dest_dataset_dir}/class_0", file_name)
                 shutil.move(img_path, dest_path)
-    print(invalid_images)
+    print(f"invalid images detected and not moved into the new dataset: {invalid_images}")
 
 
 def formatIntoTrainTest(real_imgs_path, fake_imgs_path, dest_dataset_dir):
-    if not os.path.isdir(f"{dest_dataset_dir}/class_1"): os.makedirs(f"{dest_dataset_dir}/class_1")
-    if not os.path.isdir(f"{dest_dataset_dir}/class_0"): os.makedirs(f"{dest_dataset_dir}/class_0")
+    if not os.path.isdir(f"{dest_dataset_dir}/train/class_1"): os.makedirs(f"{dest_dataset_dir}/train/class_1")
+    if not os.path.isdir(f"{dest_dataset_dir}/val/class_1"): os.makedirs(f"{dest_dataset_dir}/val/class_1")
+    if not os.path.isdir(f"{dest_dataset_dir}/train/class_0"): os.makedirs(f"{dest_dataset_dir}/train/class_0")
+    if not os.path.isdir(f"{dest_dataset_dir}/val/class_0"): os.makedirs(f"{dest_dataset_dir}/val/class_0")
 
     invalid_images = []
     #itera tutte le real images
-    print("itero le fake")
+    print("iteration on fake images")
     index = 1
     for file_name in os.listdir(fake_imgs_path):
         if index==50:
@@ -94,11 +96,11 @@ def formatIntoTrainTest(real_imgs_path, fake_imgs_path, dest_dataset_dir):
                     dest_path = os.path.join(f"{dest_dataset_dir}/train/class_0", file_name)
                 else:
                     dest_path = os.path.join(f"{dest_dataset_dir}/val/class_0", file_name)
-                shutil.copy2(img_path, dest_path)
+                shutil.move(img_path, dest_path)
                 index += 1
-    print(invalid_images)
+    print(f"invalid images detected and not moved into the new dataset: {invalid_images}")
 
-    print("itero le real")
+    print("iteration on real images")
     index = 1
     for file_name in os.listdir(real_imgs_path):
         if index==50:
@@ -113,8 +115,11 @@ def formatIntoTrainTest(real_imgs_path, fake_imgs_path, dest_dataset_dir):
                     dest_path = os.path.join(f"{dest_dataset_dir}/train/class_1", file_name)
                 else:
                     dest_path = os.path.join(f"{dest_dataset_dir}/val/class_1", file_name)
-                shutil.copy2(img_path, dest_path)
+                shutil.move(img_path, dest_path)
                 index += 1
+            else:
+                # if the real image is associated to an invalid prompt, delete the image
+                os.remove(img_path)
 
 
 #path_real_images = "data/MSCOCO/images"
