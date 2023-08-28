@@ -121,6 +121,8 @@ def LD_generation(captions_file, ld_dir, proj_dir):
     os.chdir(proj_dir)
 
 def GLIDE_generation(captions_file, image_save_dir, glide_dir):
+    # The following code is based on the official notebook available in the GLIDE repository
+    # (https://github.com/openai/glide-text2im/blob/main/notebooks/text2im.ipynb)
     if not os.path.isdir(image_save_dir):
         os.makedirs(image_save_dir)
     # Define the device for computation (GPU or CPU)

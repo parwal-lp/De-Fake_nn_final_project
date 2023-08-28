@@ -21,28 +21,44 @@ Therefore, this research proposes methods to answer the following 3 research que
 - **RQ3**. Analysis of the likelihood that different text prompts have to generate authentic images
 <br>
 
+The methods implemented in this repository aim to answer to the first two questions (RQ1 and RQ2).
+
 Instructions on how to run and test the models, using pre-built datasets and pre-trained weights can be found in the [Notebook](tldr_notebook.ipynb).<br>
-The complete description of the work, including data fetching, dataset building, model design and training, can be found in the [Complete Notebook](complete_notebook.ipynb). This can be used to reproduce from scratch all the work of this project.
+The full description of the work, including data fetching, dataset building, model design and training, can be found in the [Complete Notebook](complete_notebook.ipynb). This can be used to reproduce from scratch all the work of this project.
 <br>
 The complete code of this project can be found in the source directory of this GitHub repository [Source Code](https://github.com/parwal-lp/De-Fake_nn_final_project/src).
 
 
 ## Prerequisites
 This project was implemented using Python 3.8.10.
+This sections contains the prerequisites for running both the notebooks.
 
-- install pandas
+The following is needed for both the notebooks:
+- Clone this repository
+    ```
+    git clone https://github.com/parwal-lp/De-Fake_nn_final_project.git
+    ```
+- Install pandas
     ```
     pip install pandas
     ```
-- install Stable Diffusion sdk
-    ```
-    pip install stability-sdk
-    ```
-- install Torchvision library
+- Install Torchvision library
     ```
     pip install torchvision
     ```
-- install Latent Diffusion model from GitHub
+- Install the CLIP model (from OpenAI, required to encode images and captions for the hybrid models' datasets)
+    ```
+    pip install ftfy regex tqdm
+    ```
+
+If you only need to run the [Notebook](tldr_notebook.ipynb) then you can skip the next instructions.<br>
+If instead you want to run the [Complete Notebook](complete_notebook.ipynb), then you will also need the following:
+- Install Stable Diffusion sdk, necessary to generate fake images using SD
+    ```
+    pip install stability-sdk
+    ```
+- Register to the [Stable Diffusion website](https://platform.stability.ai/) and obtain an API key (credit for at least 400 images is needed).
+- Install Latent Diffusion model from GitHub, necessary to generate fake images using LD
     ```
     git clone https://github.com/CompVis/latent-diffusion.git
     pip install transformers==4.19.2 scann kornia==0.6.4 torchmetrics==0.6.0
@@ -51,20 +67,19 @@ This project was implemented using Python 3.8.10.
     pip install pytorch_lightning
     pip install taming-transformers-rom1504
     ```
-- install GLIDE model from GitHub
+- Copy the file "src/txt2img_batch.py" ([link to the file](src/txt2img_batch.py)) into your installation folder of Latent Diffusion, at the path "latent-diffusion/scripts/".<br>
+This file provides an alternative way to run LD to generate images. The original method of the official LD repository allows to generate one image at a time, reloading the model for every generation.<br>
+For the purposes of this project LD is needed to generate a high number of images in sequence, and reloading the model for each one is definitely not efficient.<br>
+This custom script allows to run LD by passing a dictionary of text prompts as input, LD will then generate an image for each prompt in the dictionary, loading the model only once at the beginning.<br><br>
+- If you do not have a CUDA device available for computation, you can still run Latent Diffusion on the cpu, but you will first need to modify its files according to the following commit:<br>
+    https://github.com/CompVis/latent-diffusion/pull/123/files<br>
+    If you have a CUDA device available, skip this step.<br><br>
+- Install GLIDE model from GitHub, necessary to generate fake images using GLIDE
     ```
     git clone https://github.com/openai/glide-text2im.git
     cd glide-text2im/
     pip install -e .
     pip install nbformat
     ```
-- install CLIP (from OpenAI, required to encode images and captions for the hybrid models)
-    ```
-    pip install ftfy regex tqdm
-    ```
-- modify the latent-diffusion files according to the commit<br>
-    https://github.com/CompVis/latent-diffusion/pull/123/files<br>
-    in order to be able to run the model on cpu only<br><br>
-- download the [MSCOCO annotations](images.cocodataset.org/annotations/annotations_trainval2017.zip).<br>
+- Download the [MSCOCO annotations](images.cocodataset.org/annotations/annotations_trainval2017.zip), needed to fetch real images from the MSCOCO dataset.<br>
     Extract the downloaded folder and place it at the root of this repository.<br><br>
-- Register to [Stable Diffusion](https://platform.stability.ai/) and obtain an API key (credit for at least 400 images are needed).
