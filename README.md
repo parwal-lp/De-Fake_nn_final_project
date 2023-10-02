@@ -26,7 +26,7 @@ The methods implemented in this repository aim to answer to the first two questi
 Instructions on how to run and test the models, using pre-built datasets and pre-trained weights can be found in the [Notebook](tldr_notebook.ipynb).<br>
 The full description of the work, including data fetching, dataset building, model design and training, can be found in the [Complete Notebook](complete_notebook.ipynb). This can be used to reproduce from scratch all the work of this project.
 <br>
-The complete code of this project can be found in the source directory of this GitHub repository [Source Code](https://github.com/parwal-lp/De-Fake_nn_final_project/src).
+The complete code of this project can be found in the source directory of this GitHub repository [Source Code](https://github.com/parwal-lp/De-Fake_nn_final_project/tree/main/src).
 
 
 ## Prerequisites
