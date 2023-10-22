@@ -83,10 +83,3 @@ This custom script allows to run LD by passing a dictionary of text prompts as i
     ```
 - Download the [MSCOCO annotations](images.cocodataset.org/annotations/annotations_trainval2017.zip), needed to fetch real images for the training dataset.<br>
     Extract the downloaded folder and place it at the root of this repository.<br><br>
-- Install deeplake, that will be used to fetch images from the Flikr30k dataset.
-    ```
-    pip install deeplake
-    ```
-- Download the [Flikr30k dataset](http://hockenmaier.cs.illinois.edu/DenotationGraph/), needed to fetch real images for the test dataset.<br>
-    TO DO: complete instructions
-    Note that at the time this project is developed, to download the Flikr30k dataset it is necessary to compile a form to send a request for a download link.<br><br>
